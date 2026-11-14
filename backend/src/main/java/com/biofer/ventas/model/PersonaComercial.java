@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @MappedSuperclass
-public abstract class PersonaComercial {
+public abstract class PersonaComercial extends RegistroAuditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

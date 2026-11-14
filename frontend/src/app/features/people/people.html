@@ -1,0 +1,45 @@
+<section class="page-heading">
+  <div><span class="eyebrow">ADMINISTRACIÓN · CONTACTOS</span><h1>{{isClient?'Clientes':'Vendedores'}}<span class="heading-dot">.</span></h1><p>{{isClient?'Centraliza la atención comercial y las direcciones de entrega.':'Gestiona tu equipo comercial y sus datos de pago.'}}</p></div>
+  <button class="button primary" [disabled]="busy" (click)="open()"><app-icon name="plus" />{{isClient?'Nuevo cliente':'Nuevo vendedor'}}</button>
+</section>
+@if(error&&!model){<div class="alert error" role="alert">{{error}}</div>}
+<div class="stats-grid directory-stats">
+  <article class="stat-card"><div class="stat-top"><app-icon name="users" /><span>Total de {{isClient?'clientes':'vendedores'}}</span></div><strong>{{rows.length}}</strong><span>Registros del directorio</span></article>
+  <article class="stat-card"><div class="stat-top"><app-icon name="check" /><span>Activos</span></div><strong>{{activeCount}}</strong><span>Contactos habilitados</span></article>
+  <article class="stat-card"><div class="stat-top"><app-icon name="users" /><span>Personas naturales</span></div><strong>{{peopleCount}}</strong><span>Identificación personal</span></article>
+  <article class="stat-card"><div class="stat-top"><app-icon name="box" /><span>Empresas</span></div><strong>{{companyCount}}</strong><span>Personas jurídicas</span></article>
+</div>
+<section class="card filters-panel">
+  <h3><app-icon name="search" />Filtros de búsqueda</h3>
+  <div class="filters-grid">
+    <label class="filter-search">Buscar<input [(ngModel)]="filterSearch" (keydown.enter)="applyFilters()" placeholder="Nombre, documento o correo…" /></label>
+    <label>
+      Tipo
+      <select [(ngModel)]="filters.type">
+        <option value="">Todos los tipos</option>
+        <option value="NATURAL">Persona natural</option>
+        <option value="JURIDICA">Empresa</option>
+      </select>
+    </label>
+    <label>Estado<select [(ngModel)]="filters.status"><option value="">Todos los estados</option><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></label>
+    @if(isClient){<label>Vendedor asignado<select [(ngModel)]="filters.seller"><option [ngValue]="null">Todos los vendedores</option>@for(s of sellers;track s.id){<option [ngValue]="s.id">{{personName(s)}}</option>}</select></label>}
+  </div>
+  <div class="filter-footer"><small class="muted">Consulta los datos de contacto y el responsable de cada registro.</small><div class="button-group"><button class="button secondary" (click)="clearFilters()">Limpiar filtros</button><button class="button primary" (click)="applyFilters()"><app-icon name="search" />Aplicar filtros</button></div></div>
+</section>
+<section class="card">
+  <div class="card-heading"><h2><app-icon name="users" />Directorio de {{isClient?'clientes':'vendedores'}}</h2><span class="badge">{{filtered.length}} registros</span></div>
+  @if(busy){<div class="loading">Cargando contactos…</div>}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{isClient?'Cliente':'Vendedor'}}</th><th>Documento</th><th>Contacto</th><th>{{isClient?'Vendedor asignado':'Moneda de pago'}}</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+      @for(p of visibleRows;track p.id){
+        <tr><td><strong>{{personName(p)}}</strong><small class="cell-subtitle">{{p.codigo}} · {{p.datos.tipoPersona==='JURIDICA'?'Empresa':'Persona natural'}}</small></td><td>{{p.datos.tipoDocumento}} {{p.datos.numeroDocumento}}</td><td>{{p.datos.telefono||'Sin teléfono'}}<small class="cell-subtitle">{{p.datos.email||'Sin correo'}}</small></td><td>{{isClient?p.vendedorNombre:p.monedaPago}}</td><td><span class="badge" [class.good]="p.datos.activo">{{p.datos.activo?'Activo':'Inactivo'}}</span></td><td><div class="row-actions"><button [disabled]="busy" (click)="open(p,true)"><app-icon name="eye" />Ver</button><button [disabled]="busy" (click)="open(p)">Editar</button><button [disabled]="busy" (click)="showChildren(p)">{{isClient?'Direcciones':'Cuentas'}}</button><button [disabled]="busy" (click)="showAccount(p)">Cuenta corriente</button></div></td></tr>
+      }@empty{<tr><td colspan="6" class="empty"><app-icon name="users" /><h3>{{busy?'Cargando contactos…':'No hay contactos que coincidan'}}</h3><p>Registra un contacto o ajusta los filtros de búsqueda.</p></td></tr>}
+    </tbody>
+  </table></div>
+  <footer class="pagination"><span>{{filtered.length}} registros · Página {{currentPage}} de {{pages}}</span><button [disabled]="currentPage===1||busy" (click)="page=currentPage-1">Anterior</button><button [disabled]="currentPage>=pages||busy" (click)="page=currentPage+1">Siguiente</button></footer>
+</section>
+<div class="context-cards"><article class="card"><app-icon [name]="isClient?'users':'wallet'" /><div><h3>{{isClient?'Un vendedor por cliente':'Cuentas por moneda'}}</h3><p>{{isClient?'Conserva el responsable comercial y consulta sus direcciones de entrega.':'Registra distintas cuentas bancarias para tus vendedores.'}}</p></div></article><article class="card"><app-icon name="file" /><div><h3>Trazabilidad comercial</h3><p>Consulta las facturas y saldos pendientes desde la cuenta corriente.</p></div></article></div>
+@if(contact){<div class="modal-backdrop"><section class="modal wide" role="dialog" aria-modal="true" aria-label="Información del contacto"><div class="modal-heading"><div><h2>{{isClient?'Direcciones de entrega':'Cuentas bancarias'}}</h2><p>{{personName(contact)}}</p></div><button class="icon-button" aria-label="Cerrar" (click)="contact=null"><app-icon name="close" /></button></div><div class="detail-content"><button class="button primary small-button" [disabled]="busy" (click)="openChild()"><app-icon name="plus" />{{isClient?'Agregar dirección':'Agregar cuenta'}}</button></div><div class="table-wrap"><table><thead><tr><th>{{isClient?'Destinatario':'Banco'}}</th><th>{{isClient?'Dirección':'Cuenta'}}</th><th>{{isClient?'Principal':'Moneda'}}</th><th>Estado</th><th></th></tr></thead><tbody>@for(c of children;track c.id){<tr><td>{{isClient?c.destinatario:c.banco}}</td><td>{{isClient?c.direccion:c.numeroCuenta}}</td><td>{{isClient?(c.principal?'Sí':'No'):c.moneda}}</td><td><span class="badge" [class.good]="c.activa">{{c.activa?'Activo':'Inactivo'}}</span></td><td><button class="text-button" [disabled]="busy" (click)="openChild(c)">Editar</button></td></tr>}@empty{<tr><td colspan="5" class="empty">Todavía no hay registros.</td></tr>}</tbody></table></div></section></div>}
+@if(account){<div class="modal-backdrop"><section class="modal wide" role="dialog" aria-modal="true" aria-label="Cuenta corriente"><div class="modal-heading"><div><h2>{{account.name}}</h2><p>Cuenta corriente por moneda</p></div><button class="icon-button" aria-label="Cerrar" (click)="account=null"><app-icon name="close" /></button></div>@if(account.compromisosPorMoneda){<div class="tag-list detail-content">@for(c of account.compromisosPorMoneda|keyvalue;track c.key){<span class="tag">Compromiso {{c.key}}: {{$any(c.value)|number:'1.2-2'}}</span>}</div>}<div class="table-wrap"><table><thead><tr><th>Factura</th><th>Moneda</th><th>Total</th><th>Saldo</th><th>Vencimiento</th></tr></thead><tbody>@for(f of account.facturas||account.deudas||[];track f.id){<tr><td>FAC-{{f.id}}</td><td>{{f.moneda}}</td><td>{{f.total|number:'1.2-2'}}</td><td>{{f.saldo|number:'1.2-2'}}</td><td>{{f.fechaVencimiento|date:'dd/MM/yyyy'}}</td></tr>}@empty{<tr><td colspan="5" class="empty">Sin facturas registradas.</td></tr>}</tbody></table></div></section></div>}
+@if(model){<app-editor [title]="mode==='child'?(isClient?'Dirección de entrega':'Cuenta bancaria'):(readOnlyMode?'Ficha de ':editing?'Editar ':'Nuevo ')+(isClient?'cliente':'vendedor')" [readOnly]="readOnlyMode" [model]="model" [fields]="fields" [busy]="busy" [error]="error" (closed)="model=null" (saved)="save()" />}

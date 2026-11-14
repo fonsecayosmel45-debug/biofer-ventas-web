@@ -1,0 +1,74 @@
+<section class="page-heading catalog-page-heading">
+  <div><span class="eyebrow">CATÁLOGO COMERCIAL</span><h1>Productos y categorías<span class="heading-dot">.</span></h1><p>Encuentra cada producto, revisa sus presentaciones y organiza tu catálogo.</p></div>
+  <div class="button-group"><button class="icon-button" title="Actualizar información" aria-label="Actualizar información" [disabled]="busy" (click)="load()"><app-icon name="refresh" /></button><button class="button secondary" [disabled]="busy||!rows.length" (click)="exportCsv()"><app-icon name="download" />Exportar CSV</button><button class="button primary" [disabled]="busy" (click)="open()"><app-icon name="plus" />{{tab==='productos'?'Nuevo producto':'Nueva categoría'}}</button></div>
+</section>
+@if(error&&!model){<div class="alert error" role="alert">{{error}}</div>}
+<div class="catalog-tabs" role="tablist" aria-label="Secciones del catálogo">
+  <button role="tab" [attr.aria-selected]="tab==='productos'" [class.active]="tab==='productos'" (click)="switchTab('productos')"><app-icon name="box" /><div><strong>Productos</strong><small>Catálogo comercial</small></div><span>{{products.length}}</span></button>
+  <button role="tab" [attr.aria-selected]="tab==='categorias'" [class.active]="tab==='categorias'" (click)="switchTab('categorias')"><app-icon name="leaf" /><div><strong>Categorías</strong><small>Familias y subcategorías</small></div><span>{{categories.length}}</span></button>
+</div>
+<section class="catalog-kpis" aria-label="Indicadores y filtros rápidos">
+  <button [class.chosen]="applied.status==='activo'&&!applied.stock" (click)="quickFilter('activos')"><span class="kpi-icon"><app-icon name="check" /></span><div><span>{{tab==='productos'?'Productos activos':'Categorías activas'}}</span><strong>{{activeCount}}</strong><small>Habilitados en el catálogo</small></div></button>
+  @if(tab==='productos'){
+    <button class="rose" [class.chosen]="applied.stock==='bajo'" (click)="quickFilter('bajo')"><span class="kpi-icon"><app-icon name="warning" /></span><div><span>Stock bajo</span><strong>{{lowCount}}</strong><small>Alguna presentación bajo el mínimo</small></div></button>
+    <button class="amber" [class.chosen]="applied.stock==='sin-stock'" (click)="quickFilter('sin-stock')"><span class="kpi-icon"><app-icon name="box" /></span><div><span>Sin disponible</span><strong>{{zeroCount}}</strong><small>Presentaciones sin unidades libres</small></div></button>
+    <button [class.chosen]="applied.stock==='sin-presentacion'" (click)="quickFilter('sin-presentacion')"><span class="kpi-icon"><app-icon name="plus" /></span><div><span>Sin presentación</span><strong>{{withoutPresentationCount}}</strong><small>Completa su capacidad y precio</small></div></button>
+  }@else{
+    <button [class.chosen]="applied.level==='principal'" (click)="quickFilter('principal')"><span class="kpi-icon"><app-icon name="leaf" /></span><div><span>Principales</span><strong>{{mainCount}}</strong><small>Familias del catálogo</small></div></button>
+    <button [class.chosen]="applied.level==='subcategoria'" (click)="quickFilter('subcategoria')"><span class="kpi-icon"><app-icon name="grid" /></span><div><span>Subcategorías</span><strong>{{subCount}}</strong><small>Clasificaciones específicas</small></div></button>
+    <button (click)="quickFilter('')"><span class="kpi-icon"><app-icon name="box" /></span><div><span>Total de categorías</span><strong>{{categories.length}}</strong><small>Ver todas las familias</small></div></button>
+  }
+</section>
+<app-filter-panel [model]="filters" [fields]="filterFields" [count]="chips.length" [error]="filterError" [busy]="busy" (applied)="applyFilters()" (cleared)="clearFilters()" />
+@if(chips.length){<div class="active-filters" aria-label="Filtros aplicados"><span><app-icon name="filter" />Mostrando con:</span>@for(chip of chips;track chip.key){<button (click)="removeFilter(chip.key)" [attr.aria-label]="'Quitar filtro '+chip.label">{{chip.label}}<app-icon name="close" /></button>}<button class="clear-all-filters" (click)="clearFilters()">Quitar todos</button></div>}
+<section class="card catalog-directory" [attr.aria-busy]="busy">
+  <header class="catalog-directory-heading"><div class="directory-title-icon"><app-icon [name]="tab==='productos'?'box':'leaf'" /></div><div><h2>{{tab==='productos'?'Directorio de productos':'Directorio de categorías'}}</h2><p>{{rows.length}} resultados · {{tab==='productos'?'Precios y stock se controlan por presentación.':'La categoría superior define la familia.'}}</p></div><div class="directory-tools">
+    @if(tab==='productos'){<details class="column-picker"><summary class="button secondary small-button"><app-icon name="filter" />Columnas</summary><div class="column-options"><strong>Columnas de la tabla</strong>@for(c of columns;track c.key){<label class="checkbox-label"><input type="checkbox" [(ngModel)]="c.visible" />{{c.label}}</label>}</div></details>}
+    <label class="page-size">Mostrar<select [(ngModel)]="pageSize" (ngModelChange)="page=1"><option [ngValue]="10">10</option><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select></label>
+  </div></header>
+  @if(selected.size){<div class="selection-bar"><span><strong>{{selected.size}}</strong> seleccionados</span><button class="text-button" (click)="exportCsv()"><app-icon name="download" />Exportar selección</button><button class="text-button" (click)="selected.clear()">Quitar selección</button></div>}
+  @if(busy){<div class="loading" role="status">Actualizando el catálogo…</div>}
+  <div class="table-wrap"><table class="enhanced-table">
+    <thead><tr><th class="selection-cell"><input type="checkbox" [checked]="pageSelected" [disabled]="!visibleRows.length" (change)="togglePage()" aria-label="Seleccionar esta página" /></th><th [attr.aria-sort]="sort==='nombre'?(direction===1?'ascending':'descending'):'none'"><button class="sort-button" (click)="orderBy('nombre')">{{tab==='productos'?'Producto':'Categoría'}}<app-icon name="sort" /></button></th>
+      @if(tab==='productos'){
+        @if(visibleColumn('origen')){<th>Procedencia</th>}
+        @if(visibleColumn('categorias')){<th>Categorías</th>}
+        @if(visibleColumn('stock')){<th><button class="sort-button" (click)="orderBy('stock')">Existencias<app-icon name="sort" /></button></th>}
+        @if(visibleColumn('fechas')){<th><button class="sort-button" (click)="orderBy('fecha')">Actualización<app-icon name="sort" /></button></th>}
+      }@else{<th>Categoría superior</th><th>Subcategorías</th>}
+      <th>Estado</th><th class="actions-heading">Acciones</th>
+    </tr></thead>
+    <tbody>
+      @for(row of visibleRows;track row.id){
+        <tr [class.is-selected]="selected.has(row.id)">
+          <td class="selection-cell"><input type="checkbox" [checked]="selected.has(row.id)" (change)="toggle(row.id)" [attr.aria-label]="'Seleccionar '+(row.nombreComercial||row.nombre)" /></td>
+          <td><div class="product-identity"><span class="product-avatar"><app-icon [name]="tab==='productos'?'leaf':row.padreId?'grid':'box'" /></span><div><strong>{{row.nombreComercial||row.nombre}}</strong><small class="cell-subtitle">{{tab==='productos'?row.nombreProducto:row.padreId?'Subcategoría':'Categoría principal'}}</small><span class="record-code">#{{row.id.toString().padStart(4,'0')}} @if(tab==='productos'){ · {{related(row.id).length}} presentaciones}</span></div></div></td>
+          @if(tab==='productos'){
+            @if(visibleColumn('origen')){<td><span class="origin-badge" [class.imported]="row.procedencia==='ESPANOL'"><span></span>{{row.procedencia==='ESPANOL'?'Español':'Nacional'}}</span></td>}
+            @if(visibleColumn('categorias')){<td><div class="tag-list">@for(c of row.categorias;track c.id){<button class="tag clickable-tag" (click)="filters.category=c.id;applyFilters()">{{c.nombre}}</button>}</div></td>}
+            @if(visibleColumn('stock')){<td>@if(related(row.id).length){<div class="stock-summary"><strong>{{available(row.id)}} <small>disponibles</small></strong><span>{{physical(row.id)}} físicas · {{reserved(row.id)}} reservadas</span><div class="stock-meter"><span [style.width.%]="physical(row.id)?100*available(row.id)/physical(row.id):0"></span></div></div>}@else{<span class="badge warn">Sin presentación</span>}</td>}
+            @if(visibleColumn('fechas')){<td>{{row.fechaActualizacion|date:'dd/MM/yyyy'}}<small class="cell-subtitle">{{row.fechaActualizacion|date:'HH:mm'}}</small></td>}
+          }@else{<td><span class="category-parent">{{categoryName(row.padreId)}}</span></td><td>{{childCount(row.id)}}</td>}
+          <td><span class="badge status-badge" [class.good]="row.activo||row.activa"><span></span>{{(row.activo||row.activa)?'Activo':'Inactivo'}}</span></td>
+          <td><div class="row-actions">@if(tab==='productos'){<a class="text-button" routerLink="/inventario" [queryParams]="{producto:row.id}"><app-icon name="wallet" />Precios</a>}<button [disabled]="busy" (click)="open(row,true)"><app-icon name="eye" />Ver</button><button [disabled]="busy" (click)="open(row)"><app-icon name="edit" />Editar</button></div></td>
+        </tr>
+      }@empty{<tr><td [attr.colspan]="columnCount" class="empty catalog-empty"><app-icon name="search" /><h3>{{busy?'Cargando catálogo…':'No encontramos coincidencias'}}</h3><p>Prueba otra palabra o elimina alguno de los filtros aplicados.</p><button class="button secondary small-button" (click)="clearFilters()">Limpiar filtros</button></td></tr>}
+    </tbody>
+  </table></div>
+  <footer class="pagination"><span>Mostrando <strong>{{rangeStart}}–{{rangeEnd}}</strong> de {{rows.length}} resultados</span><span class="page-indicator">Página {{currentPage}} de {{pages}}</span><button [disabled]="currentPage===1||busy" (click)="page=currentPage-1">Anterior</button><button [disabled]="currentPage>=pages||busy" (click)="page=currentPage+1">Siguiente</button></footer>
+</section>
+@if(model){<app-editor [title]="(readOnly?'Ficha de ':editing?'Editar ':'Registrar ')+(tab==='productos'?'producto':'categoría')" [readOnly]="readOnly" [model]="model" [fields]="fields" [busy]="busy" [error]="error" (closed)="model=null" (saved)="save()">
+  @if(tab==='productos'){
+    <section editor-context class="article-price-panel">
+      <h3><app-icon name="wallet" />Precio unitario del artículo</h3>
+      <p>Cada presentación tiene su propio precio sin IGV y moneda. En el pedido se multiplica ese precio por la cantidad de unidades.</p>
+      @if(editing){
+        @for(p of related(editing);track p.id){
+          <div class="article-price-row"><div><strong>{{p.capacidad}} {{p.unidad==='OTRA'?p.otraUnidad:p.unidad}}</strong><small>{{p.codigo}} · {{p.activa?'Activa':'Inactiva'}}</small></div><div><strong>{{p.moneda}} {{p.precioSinIgv|number:'1.2-4'}}</strong><small>por unidad · sin IGV</small></div><a class="button secondary small-button" routerLink="/inventario" [queryParams]="{producto:editing,editar:p.id}">Editar precio</a></div>
+        }@empty{<p class="muted">Este producto todavía no tiene presentaciones ni precios registrados.</p>}
+        <a class="button secondary small-button" routerLink="/inventario" [queryParams]="{producto:editing,nuevo:1}"><app-icon name="plus" />Agregar presentación y precio</a>
+        @if(!readOnly){<small class="field-hint">Guarda primero los cambios de este formulario antes de ir a las presentaciones.</small>}
+      }@else{<small class="field-hint">Primero guarda el producto. Después usa «Precios» para registrar la capacidad, moneda y precio unitario de cada presentación.</small>}
+    </section>
+  }
+</app-editor>}

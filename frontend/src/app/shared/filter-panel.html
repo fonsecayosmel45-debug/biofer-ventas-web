@@ -1,0 +1,25 @@
+<section class="card catalog-filter-panel" aria-label="Filtros combinados del catálogo">
+  <header class="filter-panel-heading"><div><span class="filter-heading-icon"><app-icon name="filter" /></span><div><h2>Filtra tu catálogo</h2><p>Combina criterios para encontrar exactamente lo que buscas.</p></div></div><span class="badge">{{count()}} filtros activos</span></header>
+  <form #form="ngForm" (ngSubmit)="applied.emit()">
+    <fieldset [disabled]="busy()">
+      <div class="catalog-filter-grid" [class.inventory-filter-grid]="inventoryFields">
+        @for(field of fields();track field.key){
+          @if(!field.advanced||expanded){
+            <label [class.filter-wide]="field.wide">
+              <span>{{field.label}}</span>
+              @switch(field.type){
+                @case('search'){<div class="filter-search-input"><app-icon name="search" /><input type="search" [name]="field.key" [(ngModel)]="model()[field.key]" [placeholder]="field.placeholder||'Nombre, código o descripción…'" /></div>}
+                @case('select'){<select [name]="field.key" [(ngModel)]="model()[field.key]">@for(option of field.options||[];track $index){<option [ngValue]="option.value">{{option.label}}</option>}</select>}
+                @case('date'){<input type="date" [name]="field.key" [(ngModel)]="model()[field.key]" />}
+                @case('number'){<input type="number" [name]="field.key" [(ngModel)]="model()[field.key]" [min]="field.min??null" step="0.0001" placeholder="Sin límite" />}
+              }
+              @if(field.hint){<small class="field-hint">{{field.hint}}</small>}
+            </label>
+          }
+        }
+      </div>
+      @if(error()){<p class="filter-error" role="alert">{{error()}}</p>}
+      <footer class="catalog-filter-footer"><div>@if(hasAdvanced){<button type="button" class="filter-expand" [attr.aria-expanded]="expanded" (click)="expanded=!expanded"><app-icon name="plus" />{{expanded?'Ocultar filtros avanzados':'Fechas y filtros avanzados'}}</button>}</div><div class="button-group"><button type="button" class="button secondary" (click)="cleared.emit()"><app-icon name="refresh" />Limpiar filtros</button><button type="submit" class="button primary" [disabled]="form.invalid||!!error()"><app-icon name="filter" />Aplicar filtros</button></div></footer>
+    </fieldset>
+  </form>
+</section>

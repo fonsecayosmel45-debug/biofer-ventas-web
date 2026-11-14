@@ -1,0 +1,1860 @@
+{
+  "info": {
+    "name": "BIOFER - Carga inicial ficticia",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "La ejecuta el usuario. No realiza cargas hasta pulsar Run. Ejecutar UNA iteración, en orden, contra la base local de pruebas. Contiene login, 13 categorías, 3 productos, 4 presentaciones, 2 vendedores, 1 cuenta bancaria ficticia, 2 clientes, 2 direcciones, 4 entradas de stock y 3 límites de crédito. Los nombres y documentos son ficticios. No crea pedidos, despachos, facturas ni pagos. Guarda IDs automáticamente y detiene el Runner al primer error. No es una transacción global: lo creado antes de un error permanece. No repetir las entradas de inventario: suman stock de nuevo. El login requiere completar la variable clave con el valor BIOFER_ADMIN_PASSWORD del .env; el archivo no contiene contraseñas reales."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bioferToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "usuario",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "clave",
+      "value": "REEMPLAZAR_CON_BIOFER_ADMIN_PASSWORD",
+      "type": "string"
+    },
+    {
+      "key": "bioferToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.request.url.toString().includes('/auth/login')) {",
+          "  const clave = pm.collectionVariables.get('clave');",
+          "  if (!clave || clave === 'REEMPLAZAR_CON_BIOFER_ADMIN_PASSWORD') {",
+          "    pm.execution.setNextRequest(null);",
+          "    throw new Error('Configura la variable clave de la colección con BIOFER_ADMIN_PASSWORD de tu .env antes de ejecutar.');",
+          "  }",
+          "}",
+          "const datos = pm.request.url.toString() + (pm.request.body && pm.request.body.raw ? pm.request.body.raw : '');",
+          "const resuelto = pm.variables.replaceIn(datos);",
+          "if (/\\{\\{[^}]+\\}\\}/.test(resuelto)) {",
+          "  pm.execution.setNextRequest(null);",
+          "  throw new Error('Falta una variable o un ID. Ejecuta la colección en orden desde el inicio.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Acceso",
+      "item": [
+        {
+          "name": "00.01 Iniciar sesion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"clave\": \"{{clave}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.token;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('bioferToken', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Categorias",
+      "item": [
+        {
+          "name": "01.01 Bioestimulantes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bioestimulantes\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catBioId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.02 Correctores de carencias",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Correctores de carencias\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catCorrectoresId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.03 Coadyuvantes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Coadyuvantes\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catCoadyuvantesId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.04 Especiales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Especiales\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catEspecialesId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.05 Mejoradores de suelos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mejoradores de suelos\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catSuelosId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.06 Nutrición NPK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nutrición NPK\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catNpkId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.07 Nutriprotección",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nutriprotección\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catNutriproteccionId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.08 Promotores de fitohormonas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Promotores de fitohormonas\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catFitohormonasId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.09 Productos ecológicos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Productos ecológicos\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catEcologicosId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.10 Residuo cero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Residuo cero\",\n  \"padreId\": null,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catResiduoId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.11 NPK - Líquidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Líquidos\",\n  \"padreId\": {{catNpkId}},\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catLiquidosId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.12 NPK - Sólidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sólidos\",\n  \"padreId\": {{catNpkId}},\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catSolidosId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "01.13 NPK - Suspensiones concentradas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/categorias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Suspensiones concentradas\",\n  \"padreId\": {{catNpkId}},\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('catSuspensionesId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Productos ficticios",
+      "item": [
+        {
+          "name": "02.01 Bioestimulante demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreComercial\": \"DEMO BIOFER BIOESTIMULANTE\",\n  \"nombreProducto\": \"Fertilizante ficticio de prueba\",\n  \"procedencia\": \"NACIONAL\",\n  \"descripcion\": \"Registro ficticio para probar ventas e inventario; no corresponde a un producto comercial real.\",\n  \"activo\": true,\n  \"categoriasIds\": [\n    {{catBioId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('productoBioId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "02.02 NPK demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreComercial\": \"DEMO BIOFER NPK LIQUIDO\",\n  \"nombreProducto\": \"Fertilizante NPK ficticio de prueba\",\n  \"procedencia\": \"ESPANOL\",\n  \"descripcion\": \"Registro ficticio para probar operaciones en dólares.\",\n  \"activo\": true,\n  \"categoriasIds\": [\n    {{catNpkId}},\n    {{catLiquidosId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('productoNpkId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "02.03 Suelos demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreComercial\": \"DEMO BIOFER SUELOS\",\n  \"nombreProducto\": \"Producto ficticio para suelos\",\n  \"procedencia\": \"NACIONAL\",\n  \"descripcion\": \"Registro ficticio para probar presentaciones de mayor capacidad.\",\n  \"activo\": true,\n  \"categoriasIds\": [\n    {{catSuelosId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('productoSueloId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Presentaciones",
+      "item": [
+        {
+          "name": "03.01 Bioestimulante 250 ml",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": {{productoBioId}},\n  \"codigo\": \"DEMO-BIO-250ML\",\n  \"capacidad\": 250,\n  \"unidad\": \"ML\",\n  \"otraUnidad\": null,\n  \"precioSinIgv\": 35.5,\n  \"moneda\": \"PEN\",\n  \"stockMinimo\": 10,\n  \"stockAlto\": 100,\n  \"activa\": true,\n  \"motivoCambioPrecio\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('presentacion250Id', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03.02 Bioestimulante 1 litro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": {{productoBioId}},\n  \"codigo\": \"DEMO-BIO-1LT\",\n  \"capacidad\": 1,\n  \"unidad\": \"LT\",\n  \"otraUnidad\": null,\n  \"precioSinIgv\": 100,\n  \"moneda\": \"PEN\",\n  \"stockMinimo\": 10,\n  \"stockAlto\": 150,\n  \"activa\": true,\n  \"motivoCambioPrecio\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('presentacionLitroId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03.03 NPK 5 litros",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": {{productoNpkId}},\n  \"codigo\": \"DEMO-NPK-5LT\",\n  \"capacidad\": 5,\n  \"unidad\": \"LT\",\n  \"otraUnidad\": null,\n  \"precioSinIgv\": 45,\n  \"moneda\": \"USD\",\n  \"stockMinimo\": 5,\n  \"stockAlto\": 80,\n  \"activa\": true,\n  \"motivoCambioPrecio\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('presentacionNpkId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03.04 Suelos 20 litros",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": {{productoSueloId}},\n  \"codigo\": \"DEMO-SUELO-20LT\",\n  \"capacidad\": 20,\n  \"unidad\": \"LT\",\n  \"otraUnidad\": null,\n  \"precioSinIgv\": 180,\n  \"moneda\": \"PEN\",\n  \"stockMinimo\": 5,\n  \"stockAlto\": 60,\n  \"activa\": true,\n  \"motivoCambioPrecio\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('presentacionSueloId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Vendedores",
+      "item": [
+        {
+          "name": "04.01 Vendedor uno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vendedores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos\": {\n    \"tipoPersona\": \"NATURAL\",\n    \"nombres\": \"Carlos Demo\",\n    \"apellidos\": \"Vendedor Uno\",\n    \"razonSocial\": null,\n    \"nombreComercial\": null,\n    \"tipoDocumento\": \"DNI\",\n    \"numeroDocumento\": \"10000001\",\n    \"telefono\": \"900000001\",\n    \"email\": \"pruebas@example.com\",\n    \"activo\": true\n  },\n  \"fechaNacimiento\": \"1988-05-12\",\n  \"telefonoAlternativo\": null,\n  \"direccion\": \"Dirección ficticia 100\",\n  \"departamento\": \"Lima\",\n  \"provincia\": \"Lima\",\n  \"ciudad\": \"Lima\",\n  \"monedaPago\": \"PEN\",\n  \"fechaCese\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('vendedorUnoId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04.02 Vendedor dos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vendedores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos\": {\n    \"tipoPersona\": \"NATURAL\",\n    \"nombres\": \"María Demo\",\n    \"apellidos\": \"Vendedora Dos\",\n    \"razonSocial\": null,\n    \"nombreComercial\": null,\n    \"tipoDocumento\": \"DNI\",\n    \"numeroDocumento\": \"10000002\",\n    \"telefono\": \"900000001\",\n    \"email\": \"pruebas@example.com\",\n    \"activo\": true\n  },\n  \"fechaNacimiento\": \"1990-08-20\",\n  \"telefonoAlternativo\": null,\n  \"direccion\": \"Dirección ficticia 200\",\n  \"departamento\": \"La Libertad\",\n  \"provincia\": \"Trujillo\",\n  \"ciudad\": \"Trujillo\",\n  \"monedaPago\": \"USD\",\n  \"fechaCese\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('vendedorDosId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04.03 Cuenta bancaria ficticia vendedor uno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/vendedores/{{vendedorUnoId}}/cuentas-bancarias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"banco\": \"BANCO DEMO\",\n  \"numeroCuenta\": \"000000000001\",\n  \"cci\": null,\n  \"titular\": \"Carlos Demo Vendedor Uno\",\n  \"moneda\": \"PEN\",\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('cuentaDemoId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Clientes y direcciones",
+      "item": [
+        {
+          "name": "05.01 Cliente persona natural",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos\": {\n    \"tipoPersona\": \"NATURAL\",\n    \"nombres\": \"Luis Demo\",\n    \"apellidos\": \"Cliente Uno\",\n    \"razonSocial\": null,\n    \"nombreComercial\": null,\n    \"tipoDocumento\": \"DNI\",\n    \"numeroDocumento\": \"20000001\",\n    \"telefono\": \"900000001\",\n    \"email\": \"pruebas@example.com\",\n    \"activo\": true\n  },\n  \"genero\": \"MASCULINO\",\n  \"vendedorId\": {{vendedorUnoId}},\n  \"metodoEnvio\": \"AGENCIA\",\n  \"transportePreferido\": \"TRANSPORTES DEMO\",\n  \"motivoCambioVendedor\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('clienteUnoId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05.02 Direccion cliente uno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes/{{clienteUnoId}}/direcciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinatario\": \"Luis Demo Cliente Uno\",\n  \"documentoDestinatario\": \"20000001\",\n  \"direccion\": \"Dirección ficticia del cliente 101\",\n  \"departamento\": \"Lima\",\n  \"provincia\": \"Lima\",\n  \"distrito\": \"Ate\",\n  \"ciudad\": \"Lima\",\n  \"referencia\": \"Punto de entrega de prueba\",\n  \"principal\": true,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('direccionUnoId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05.03 Cliente empresa ficticia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datos\": {\n    \"tipoPersona\": \"JURIDICA\",\n    \"nombres\": null,\n    \"apellidos\": null,\n    \"razonSocial\": \"AGRICOLA DEMOSTRACION SAC\",\n    \"nombreComercial\": \"AGRICOLA DEMO\",\n    \"tipoDocumento\": \"RUC\",\n    \"numeroDocumento\": \"20999999991\",\n    \"telefono\": \"900000002\",\n    \"email\": \"empresa@example.com\",\n    \"activo\": true\n  },\n  \"genero\": null,\n  \"vendedorId\": {{vendedorDosId}},\n  \"metodoEnvio\": \"AGENCIA\",\n  \"transportePreferido\": \"TRANSPORTES DEMO\",\n  \"motivoCambioVendedor\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('clienteEmpresaId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05.04 Direccion cliente empresa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes/{{clienteEmpresaId}}/direcciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinatario\": \"Almacén Agrícola Demo\",\n  \"documentoDestinatario\": \"20999999991\",\n  \"direccion\": \"Dirección ficticia de empresa 202\",\n  \"departamento\": \"La Libertad\",\n  \"provincia\": \"Trujillo\",\n  \"distrito\": \"Trujillo\",\n  \"ciudad\": \"Trujillo\",\n  \"referencia\": \"Almacén ficticio de prueba\",\n  \"principal\": true,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "else {",
+                  "  const datos = pm.response.json();",
+                  "  const valor = datos.id;",
+                  "  pm.test('Respuesta contiene el dato necesario', function () { pm.expect(valor).to.not.eql(undefined); pm.expect(valor).to.not.eql(null); });",
+                  "  if (valor !== undefined && valor !== null) { pm.collectionVariables.set('direccionEmpresaId', String(valor)); }",
+                  "  else { pm.execution.setNextRequest(null); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Existencias iniciales",
+      "item": [
+        {
+          "name": "06.01 Ingresar 50 unidades de 250 ml",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones/{{presentacion250Id}}/movimientos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"ENTRADA\",\n  \"cantidad\": 50,\n  \"motivo\": \"Carga inicial ficticia para las pruebas de BIOFER\",\n  \"referencia\": \"DEMO-INICIAL-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "06.02 Ingresar 80 unidades de 1 litro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones/{{presentacionLitroId}}/movimientos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"ENTRADA\",\n  \"cantidad\": 80,\n  \"motivo\": \"Carga inicial ficticia para las pruebas de BIOFER\",\n  \"referencia\": \"DEMO-INICIAL-002\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "06.03 Ingresar 40 unidades de NPK",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones/{{presentacionNpkId}}/movimientos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"ENTRADA\",\n  \"cantidad\": 40,\n  \"motivo\": \"Carga inicial ficticia para las pruebas de BIOFER\",\n  \"referencia\": \"DEMO-INICIAL-003\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "06.04 Ingresar 25 unidades de suelos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/presentaciones/{{presentacionSueloId}}/movimientos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"ENTRADA\",\n  \"cantidad\": 25,\n  \"motivo\": \"Carga inicial ficticia para las pruebas de BIOFER\",\n  \"referencia\": \"DEMO-INICIAL-004\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 - Limites de credito",
+      "item": [
+        {
+          "name": "07.01 Credito vendedor uno PEN",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "biofer-creditos-vendedor-uno-pen-20261114-v2"
+              }
+            ],
+            "url": "{{baseUrl}}/api/creditos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": {{vendedorUnoId}},\n  \"moneda\": \"PEN\",\n  \"limite\": 10000,\n  \"aprobado\": true,\n  \"motivo\": \"Límite ficticio para pruebas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "07.02 Credito vendedor uno USD",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "biofer-creditos-vendedor-uno-usd-20261114-v2"
+              }
+            ],
+            "url": "{{baseUrl}}/api/creditos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": {{vendedorUnoId}},\n  \"moneda\": \"USD\",\n  \"limite\": 3000,\n  \"aprobado\": true,\n  \"motivo\": \"Límite ficticio para pruebas en dólares\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "07.03 Credito vendedor dos USD",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "biofer-creditos-vendedor-dos-usd-20261114-v2"
+              }
+            ],
+            "url": "{{baseUrl}}/api/creditos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendedorId\": {{vendedorDosId}},\n  \"moneda\": \"USD\",\n  \"limite\": 5000,\n  \"aprobado\": true,\n  \"motivo\": \"Límite ficticio del segundo vendedor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08 - Consultas finales",
+      "item": [
+        {
+          "name": "08.01 Ver categorias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categorias?size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08.02 Ver productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/productos?size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08.03 Ver presentaciones con existencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/presentaciones?size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08.04 Ver vendedores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/vendedores?size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08.05 Ver clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/clientes?size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08.06 Ver creditos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/creditos?size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08.07 Ver reporte de stock",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/reportes/stock"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const correcto = pm.response.code >= 200 && pm.response.code < 300;",
+                  "pm.test('Respuesta correcta', function () { pm.expect(correcto, pm.response.text()).to.eql(true); });",
+                  "if (!correcto) {",
+                  "  console.error('Carga detenida en: ' + pm.info.requestName, pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

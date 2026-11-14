@@ -6,7 +6,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "movimientos_inventario")
-public class MovimientoInventario {
+public class MovimientoInventario extends RegistroAuditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

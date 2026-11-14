@@ -17,6 +17,23 @@ import java.util.TreeMap;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler({org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+        org.springframework.dao.PessimisticLockingFailureException.class})
+    public ResponseEntity<ApiError> manejarConcurrencia(Exception exception, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(Instant.now(),409,
+            "Otro proceso modificó el registro. Reintente con la misma Idempotency-Key",Map.of(),request.getRequestURI()));
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+    public ResponseEntity<ApiError> manejarCabecera(org.springframework.web.bind.MissingRequestHeaderException e,HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(new ApiError(Instant.now(),400,"Falta la cabecera " + e.getHeaderName(),Map.of(),request.getRequestURI()));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> manejarArchivo(Exception e,HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ApiError(Instant.now(),413,"El archivo supera 10 MB",Map.of(),request.getRequestURI()));
+    }
+
     public record ApiError(
         Instant fecha,
         int estado,

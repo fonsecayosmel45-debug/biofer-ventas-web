@@ -12,7 +12,7 @@ import jakarta.persistence.*;
         }
     )
 )
-public class CuentaBancariaVendedor {
+public class CuentaBancariaVendedor extends RegistroAuditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

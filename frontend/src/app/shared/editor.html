@@ -1,0 +1,61 @@
+<div class="modal-backdrop">
+  <section class="modal registration-editor" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+    <header class="modal-heading">
+      <div>
+        <div class="dialog-brand"><img src="/images/logo.svg" alt="" width="38" height="38" /><strong>BIOFER</strong><span>GESTIÓN DE VENTAS</span></div>
+        <h2>{{ title() }}</h2>
+        <p>{{ subtitle() }}</p>
+      </div>
+      <button type="button" class="icon-button" aria-label="Cerrar formulario" [disabled]="busy() || uploading()" (click)="closed.emit()"><app-icon name="close" /></button>
+    </header>
+    <form class="editor-form" #form="ngForm" (ngSubmit)="saved.emit()">
+      <div class="editor-content">
+        <ng-content select="[editor-context]" />
+        @if (error()) { <div class="alert error" role="alert">{{ error() }}</div> }
+        @if (uploadError()) { <div class="alert error" role="alert">{{ uploadError() }}</div> }
+        <fieldset [disabled]="busy() || uploading() || readOnly()">
+          @for (section of sections(); track section.title) {
+            <section class="form-section">
+              <h3><app-icon [name]="section.icon" />{{ section.title }}</h3>
+              <div class="form-grid">
+                @for (field of section.fields; track field.key) {
+                  <label [class.span-2]="field.wide || field.type === 'textarea' || field.type === 'multi' || field.type === 'checkbox'" [class.checkbox-label]="field.type === 'checkbox'">
+                    @if (field.type === 'checkbox') {
+                      <input type="checkbox" [name]="field.key" [(ngModel)]="model()[field.key]" />
+                      <span>{{ field.label }}</span>
+                    } @else {
+                      <span class="field-label">{{ field.label }} @if (isRequired(field)) { <span class="required-label">Obligatorio</span> } @else { <small>(opcional)</small> }</span>
+                      @switch (field.type) {
+                        @case ('number') { <input type="number" [name]="field.key" [(ngModel)]="model()[field.key]" [required]="isRequired(field)" [min]="field.min ?? null" [step]="field.step || 'any'" /> }
+                        @case ('file') {
+                          <input [name]="field.key" [(ngModel)]="model()[field.key]" [required]="isRequired(field)" placeholder="Referencia del soporte o archivo adjunto" maxlength="500" />
+                          <input type="file" accept="application/pdf,image/png,image/jpeg" (change)="upload($event,field.key)" />
+                          <small class="field-hint">{{ uploading() ? 'Subiendo archivo…' : 'PDF, PNG o JPEG de hasta 10 MB, o una referencia externa.' }}</small>
+                        }
+                        @case ('select') {
+                          <select [name]="field.key" [(ngModel)]="model()[field.key]" [required]="isRequired(field)" (ngModelChange)="fieldChanged(field)">
+                            <option [ngValue]="null">Seleccionar…</option>
+                            @for (option of field.options || []; track $index) { <option [ngValue]="option.value">{{ option.label }}</option> }
+                          </select>
+                        }
+                        @case ('multi') {
+                          <select multiple [name]="field.key" [(ngModel)]="model()[field.key]" [required]="isRequired(field)">
+                            @for (option of field.options || []; track $index) { <option [ngValue]="option.value">{{ option.label }}</option> }
+                          </select>
+                        }
+                        @case ('textarea') { <textarea rows="3" [name]="field.key" [(ngModel)]="model()[field.key]" [required]="isRequired(field)" [attr.maxlength]="field.max || null"></textarea> }
+                        @default { <input [type]="field.type || 'text'" [name]="field.key" [(ngModel)]="model()[field.key]" [required]="isRequired(field)" [attr.maxlength]="field.max || null" /> }
+                      }
+                      @if (field.hint) { <small class="field-hint">{{ field.hint }}</small> }
+                    }
+                  </label>
+                }
+              </div>
+            </section>
+          }
+        </fieldset>
+      </div>
+      <footer class="modal-actions"><small class="form-footer-note">{{readOnly() ? 'Ficha de consulta.' : 'Revisa los datos antes de guardar.'}}</small><button type="button" class="button secondary" [disabled]="busy() || uploading()" (click)="closed.emit()">{{readOnly() ? 'Cerrar' : 'Cancelar'}}</button>@if(!readOnly()){<button class="button primary" [disabled]="form.invalid || busy() || uploading()"><app-icon name="check" />{{ busy() ? 'Guardando…' : 'Guardar registro' }}</button>}</footer>
+    </form>
+  </section>
+</div>

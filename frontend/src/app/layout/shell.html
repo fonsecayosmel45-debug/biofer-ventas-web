@@ -1,0 +1,30 @@
+<div class="workspace" [class.menu-open]="open">
+  <button class="menu-toggle" [class.is-open]="open" [attr.aria-label]="open ? 'Cerrar menú' : 'Abrir menú'" [attr.aria-expanded]="open" aria-controls="biofer-sidebar" (click)="open = !open"><span></span><span></span><span></span></button>
+  @if (open) { <button class="sidebar-scrim" aria-label="Cerrar menú" (click)="open = false"></button> }
+  <aside id="biofer-sidebar" class="sidebar" [class.is-open]="open" [attr.inert]="open ? null : ''">
+    <a routerLink="/inicio" class="brand sidebar-brand" (click)="navigate()"><img src="/images/logo.svg" alt="" width="38" height="38" /><span>BIOFER<small>GESTIÓN DE VENTAS</small></span></a>
+    <nav aria-label="Menú principal">
+      <p class="nav-section">MENÚ</p>
+      <a routerLink="/inicio" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="navigate()"><app-icon name="grid" /><span>Inicio</span></a>
+      @for (group of groups; track group.key) {
+        <button class="nav-group" [class.active]="groupActive(group)" [attr.aria-expanded]="expanded[group.key]" [attr.aria-controls]="'nav-'+group.key" (click)="expanded[group.key] = !expanded[group.key]">
+          <app-icon [name]="group.icon" /><span>{{ group.label }}</span><span class="chevron" [class.expanded]="expanded[group.key]" aria-hidden="true">⌄</span>
+        </button>
+        <div class="nav-submenu" [id]="'nav-'+group.key" [hidden]="!expanded[group.key]">
+          @for (link of group.links; track link.path) { <a [routerLink]="link.path" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="navigate()">{{ link.label }}</a> }
+        </div>
+      }
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-card"><div class="avatar">{{ auth.user().charAt(0).toUpperCase() }}</div><div><strong>{{ auth.user() }}</strong><small>Administración</small></div><span class="online-dot"></span></div>
+      <button class="logout-button" (click)="auth.logout()"><app-icon name="exit" />Cerrar sesión</button>
+      <p class="sidebar-tagline">Crecemos contigo.</p>
+    </div>
+  </aside>
+  <div class="main-column">
+    <header class="topbar"><div class="topbar-title"><a routerLink="/inicio"><app-icon name="grid" />Inicio</a><span class="muted">/</span><strong>{{ title }}</strong></div><span class="environment"><span class="online-dot"></span>BIOFER · VENTAS</span></header>
+    <main class="main-content"><router-outlet /></main>
+    <footer class="app-footer"><span>BIOFER · Cultivando un mejor futuro</span><span>Gestión comercial e inventario</span></footer>
+  </div>
+</div>
+@if (api.notice()) { <div class="toast" role="status"><app-icon name="check" />{{ api.notice() }}</div> }

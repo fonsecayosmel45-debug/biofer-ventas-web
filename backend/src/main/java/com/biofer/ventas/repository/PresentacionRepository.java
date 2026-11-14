@@ -13,6 +13,7 @@ public interface PresentacionRepository
         extends JpaRepository<Presentacion, Long> {
 
     boolean existsByCodigoIgnoreCase(String codigo);
+    boolean existsByProducto_IdAndStockReservadoGreaterThan(Long productoId,int stock);
 
     boolean existsByCodigoIgnoreCaseAndIdNot(
         String codigo,

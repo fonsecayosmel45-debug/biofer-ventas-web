@@ -1,0 +1,65 @@
+<section class="page-heading catalog-page-heading">
+  <div><span class="eyebrow">CONTROL DE EXISTENCIAS</span><h1>Presentaciones y stock<span class="heading-dot">.</span></h1><p>Consulta capacidades, compara precios por moneda y sigue cada movimiento.</p></div>
+  <div class="button-group"><button class="icon-button" title="Actualizar inventario" aria-label="Actualizar inventario" [disabled]="busy" (click)="load()"><app-icon name="refresh" /></button><button class="button secondary" [disabled]="busy||!filtered.length" (click)="exportCsv()"><app-icon name="download" />Exportar CSV</button><button class="button primary" [disabled]="busy" (click)="open()"><app-icon name="plus" />Nueva presentación</button></div>
+</section>
+@if(error&&!model&&!history){<div class="alert error" role="alert">{{error}}</div>}
+<section class="catalog-kpis" aria-label="Indicadores y filtros rápidos de inventario">
+  <button [class.chosen]="applied.status==='activo'&&!applied.stock" (click)="quickFilter('activos')"><span class="kpi-icon"><app-icon name="box" /></span><div><span>Artículos activos</span><strong>{{activeCount}}</strong><small>{{rows.length}} presentaciones en el catálogo</small></div></button>
+  <button class="rose" [class.chosen]="applied.stock==='bajo'" (click)="quickFilter('bajo')"><span class="kpi-icon"><app-icon name="warning" /></span><div><span>Stock bajo</span><strong>{{lowCount}}</strong><small>Disponibilidad inferior al mínimo</small></div></button>
+  <button class="amber" [class.chosen]="applied.stock==='sin-stock'" (click)="quickFilter('sin-stock')"><span class="kpi-icon"><app-icon name="box" /></span><div><span>Sin disponible</span><strong>{{zeroCount}}</strong><small>Sin unidades libres para reservar</small></div></button>
+  <button [class.chosen]="applied.stock==='reservado'" (click)="quickFilter('reservado')"><span class="kpi-icon"><app-icon name="cart" /></span><div><span>Unidades reservadas</span><strong>{{reserved}}</strong><small>{{available}} unidades disponibles en total</small></div></button>
+</section>
+<app-filter-panel [model]="filters" [fields]="filterFields" [count]="chips.length" [error]="filterError" [busy]="busy" (applied)="applyFilters()" (cleared)="clearFilters()" />
+@if(chips.length){<div class="active-filters" aria-label="Filtros aplicados"><span><app-icon name="filter" />Mostrando con:</span>@for(chip of chips;track chip.key){<button (click)="removeFilter(chip.key)" [attr.aria-label]="'Quitar filtro '+chip.label">{{chip.label}}<app-icon name="close" /></button>}<button class="clear-all-filters" (click)="clearFilters()">Quitar todos</button></div>}
+<section class="card catalog-directory" [attr.aria-busy]="busy">
+  <header class="catalog-directory-heading"><div class="directory-title-icon"><app-icon name="box" /></div><div><h2>Inventario de presentaciones</h2><p>{{filtered.length}} artículos encontrados · El stock se controla por unidades de cada presentación.</p></div><div class="directory-tools">
+    <details class="column-picker"><summary class="button secondary small-button"><app-icon name="filter" />Columnas</summary><div class="column-options"><strong>Columnas del inventario</strong>@for(c of columns;track c.key){<label class="checkbox-label"><input type="checkbox" [(ngModel)]="c.visible" />{{c.label}}</label>}</div></details>
+    <label class="page-size">Mostrar<select [(ngModel)]="pageSize" (ngModelChange)="page=1"><option [ngValue]="10">10</option><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select></label>
+  </div></header>
+  @if(selected.size){<div class="selection-bar"><span><strong>{{selected.size}}</strong> artículos seleccionados</span><button class="text-button" (click)="exportCsv()"><app-icon name="download" />Exportar selección</button><button class="text-button" (click)="selected.clear()">Quitar selección</button></div>}
+  @if(busy){<div class="loading" role="status">Actualizando inventario…</div>}
+  <div class="table-wrap"><table class="enhanced-table inventory-directory-table">
+    <thead><tr><th class="selection-cell"><input type="checkbox" [checked]="pageSelected" [disabled]="!visibleRows.length" (change)="togglePage()" aria-label="Seleccionar esta página" /></th><th><button class="sort-button" (click)="orderBy('nombre')">Artículo<app-icon name="sort" /></button></th>
+      @if(visibleColumn('capacidad')){<th>Presentación</th>}
+      @if(visibleColumn('precio')){<th><button class="sort-button" (click)="orderBy('precio')">P. unitario sin IGV<app-icon name="sort" /></button></th>}
+      @if(visibleColumn('fisico')){<th>Físico</th>}
+      @if(visibleColumn('reservado')){<th>Reservado</th>}
+      @if(visibleColumn('disponible')){<th><button class="sort-button" (click)="orderBy('stock')">Disponible<app-icon name="sort" /></button></th>}
+      @if(visibleColumn('fechas')){<th><button class="sort-button" (click)="orderBy('fecha')">Actualización<app-icon name="sort" /></button></th>}
+      <th>Estado</th><th class="actions-heading">Acciones</th>
+    </tr></thead>
+    <tbody>
+      @for(p of visibleRows;track p.id){
+        <tr [class.is-selected]="selected.has(p.id)">
+          <td class="selection-cell"><input type="checkbox" [checked]="selected.has(p.id)" (change)="toggle(p.id)" [attr.aria-label]="'Seleccionar '+p.codigo" /></td>
+          <td><div class="product-identity"><span class="product-avatar"><app-icon name="leaf" /></span><div><strong>{{p.nombreComercial}}</strong><button class="record-code code-button" (click)="orderBy('codigo')">{{p.codigo}}</button></div></div></td>
+          @if(visibleColumn('capacidad')){<td><span class="capacity-badge">{{p.capacidad}} {{p.unidad==='OTRA'?p.otraUnidad:p.unidad}}</span></td>}
+          @if(visibleColumn('precio')){<td><strong class="price-value"><span>{{p.moneda}}</span>{{p.precioSinIgv|number:'1.2-4'}}</strong><small class="cell-subtitle">por unidad de esta presentación</small></td>}
+          @if(visibleColumn('fisico')){<td><span class="stock-number">{{p.stockActual}}</span><small class="cell-subtitle">unidades</small></td>}
+          @if(visibleColumn('reservado')){<td><span class="stock-number reserved-number">{{p.stockReservado}}</span><small class="cell-subtitle">comprometidas</small></td>}
+          @if(visibleColumn('disponible')){<td><div class="stock-summary"><strong [class.danger-text]="p.stockDisponible===0">{{p.stockDisponible}} <small>libres</small></strong><div class="stock-meter" [class.low]="p.stockDisponible>0&&p.stockDisponible<p.stockMinimo"><span [style.width.%]="fillPercent(p)"></span></div><span>Mín. {{p.stockMinimo}} · Alto {{p.stockAlto}}</span></div></td>}
+          @if(visibleColumn('fechas')){<td>{{p.fechaActualizacion|date:'dd/MM/yyyy'}}<small class="cell-subtitle">{{p.fechaActualizacion|date:'HH:mm'}}</small></td>}
+          <td><span class="badge" [class.danger]="p.stockDisponible===0&&p.activa" [class.warn]="p.stockDisponible>0&&p.stockDisponible<p.stockMinimo" [class.good]="p.stockDisponible>=p.stockMinimo&&p.stockDisponible>0&&p.activa">{{p.activa?stockLabel(p):'Inactivo'}}</span></td>
+          <td><div class="row-actions inventory-row-actions"><button [disabled]="busy" (click)="open(p,true)" title="Ver ficha"><app-icon name="eye" /><span>Ver</span></button><button [disabled]="busy" (click)="movement(p)"><app-icon name="plus" />Movimiento</button><button class="action-icon" [disabled]="busy" (click)="showHistory(p,'kardex')" aria-label="Ver kardex" title="Ver kardex"><app-icon name="history" /></button><button class="action-icon" [disabled]="busy" (click)="showHistory(p,'precios')" aria-label="Historial de precios" title="Historial de precios"><app-icon name="wallet" /></button><button class="action-icon" [disabled]="busy" (click)="open(p)" aria-label="Editar presentación" title="Editar presentación"><app-icon name="edit" /></button></div></td>
+        </tr>
+      }@empty{<tr><td [attr.colspan]="columnCount" class="empty catalog-empty"><app-icon name="search" /><h3>{{busy?'Cargando inventario…':'No encontramos artículos'}}</h3><p>Cambia los filtros o registra una nueva presentación.</p><button class="button secondary small-button" (click)="clearFilters()">Limpiar filtros</button></td></tr>}
+    </tbody>
+  </table></div>
+  <footer class="pagination"><span>Mostrando <strong>{{rangeStart}}–{{rangeEnd}}</strong> de {{filtered.length}} artículos</span><span class="page-indicator">Página {{currentPage}} de {{pages}}</span><button [disabled]="currentPage===1||busy" (click)="page=currentPage-1">Anterior</button><button [disabled]="currentPage>=pages||busy" (click)="page=currentPage+1">Siguiente</button></footer>
+</section>
+@if(model){<app-editor [title]="mode==='movimiento'?'Registrar movimiento · '+editing.codigo:(readOnly?'Ficha de ':editing?'Editar ':'Nueva ')+'presentación'" [subtitle]="mode==='movimiento'?'Registra las cantidades que ingresan o se ajustan.':'El precio unitario corresponde a una unidad de esta presentación, sin IGV.'" [readOnly]="readOnly" [model]="model" [fields]="fields" [busy]="busy" [error]="error" (closed)="model=null" (saved)="save()" />}
+@if(history){
+  <div class="modal-backdrop"><section class="modal extra-wide" role="dialog" aria-modal="true" aria-label="Trazabilidad del artículo">
+    <div class="modal-heading"><div><h2>{{history.type==='kardex'?'Kardex de inventario':'Histórico de precios'}}</h2><p>{{history.row.nombreComercial}} · {{history.row.codigo}}</p></div><button class="icon-button" aria-label="Cerrar" (click)="history=null"><app-icon name="close" /></button></div>
+    @if(error){<div class="alert error">{{error}}</div>}
+    <div class="history-filter-grid"><label>Buscar referencia o motivo<input [(ngModel)]="historySearch" placeholder="Texto del movimiento…" /></label>
+      @if(history.type==='kardex'){<label>Movimiento<select [(ngModel)]="historyType"><option value="">Todos</option><option value="ENTRADA">Entrada</option><option value="AJUSTE_POSITIVO">Ajuste positivo</option><option value="AJUSTE_NEGATIVO">Ajuste negativo</option><option value="SALIDA_VENTA">Salida por venta</option></select></label>}
+      <label>Desde<input type="date" [(ngModel)]="historyFrom" /></label><label>Hasta<input type="date" [(ngModel)]="historyTo" /></label>
+    </div>
+    @if(historyFrom&&historyTo&&historyFrom>historyTo){<div class="alert error">La fecha inicial debe ser anterior o igual a la final.</div>}
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th>@if(history.type==='kardex'){<th>Movimiento</th><th>Cantidad</th><th>Antes</th><th>Después</th><th>Referencia</th>}@else{<th>Precio anterior</th><th>Precio nuevo</th>}<th>Motivo</th></tr></thead><tbody>
+      @for(h of historyFiltered;track h.id){<tr><td>{{h.fecha|date:'dd/MM/yyyy HH:mm'}}</td>@if(history.type==='kardex'){<td><span class="badge">{{h.tipo.replaceAll('_',' ')}}</span></td><td><strong>{{h.cantidad>0?'+':''}}{{h.cantidad}}</strong></td><td>{{h.saldoAnterior}}</td><td>{{h.saldoPosterior}}</td><td>{{h.referencia||'—'}}</td>}@else{<td>{{h.monedaAnterior}} {{h.precioAnterior|number:'1.2-4'}}</td><td>{{h.monedaNueva}} {{h.precioNuevo|number:'1.2-4'}}</td>}<td>{{h.motivo}}</td></tr>}
+      @empty{<tr><td colspan="7" class="empty">No hay registros que coincidan con estos filtros.</td></tr>}
+    </tbody></table></div><footer class="modal-actions"><span class="muted form-footer-note">{{historyFiltered.length}} registros encontrados</span><button class="button secondary" (click)="history=null">Cerrar historial</button></footer>
+  </section></div>
+}

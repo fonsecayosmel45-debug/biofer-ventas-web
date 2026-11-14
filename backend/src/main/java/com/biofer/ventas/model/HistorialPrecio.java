@@ -7,7 +7,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "historial_precios")
-public class HistorialPrecio {
+public class HistorialPrecio extends RegistroAuditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

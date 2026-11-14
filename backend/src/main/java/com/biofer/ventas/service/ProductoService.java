@@ -28,13 +28,19 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final com.biofer.ventas.repository.PresentacionRepository presentaciones;
+    private final ControlOperacionService control;
 
     public ProductoService(
             ProductoRepository productoRepository,
-            CategoriaRepository categoriaRepository) {
+            CategoriaRepository categoriaRepository,
+            com.biofer.ventas.repository.PresentacionRepository presentaciones,
+            ControlOperacionService control) {
 
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
+        this.presentaciones=presentaciones;
+        this.control=control;
     }
 
     public Page<ProductoResponse> listar(
@@ -76,6 +82,8 @@ public class ProductoService {
             Long id,
             ProductoRequest request) {
 
+        control.bloquear();
+        if (!request.activo()) validarSinReservas(id);
         Producto producto = obtener(id);
         asignarDatos(producto, request);
 
@@ -86,9 +94,16 @@ public class ProductoService {
 
     @Transactional
     public void desactivar(Long id) {
+        control.bloquear();
+        validarSinReservas(id);
         Producto producto = obtener(id);
         producto.setActivo(false);
         productoRepository.save(producto);
+    }
+
+    private void validarSinReservas(Long id) {
+        ReglasVenta.exigir(!presentaciones.existsByProducto_IdAndStockReservadoGreaterThan(id,0),
+            "No puede desactivar un producto con presentaciones reservadas");
     }
 
     private Producto obtener(Long id) {

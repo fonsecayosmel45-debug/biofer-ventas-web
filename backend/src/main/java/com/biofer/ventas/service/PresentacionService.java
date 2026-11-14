@@ -19,6 +19,8 @@ import java.util.Currency;
 public class PresentacionService {
 
     private final PresentacionRepository presentaciones;
+    private final ControlOperacionService control;
+    private final ReservaService reservas;
     private final ProductoRepository productos;
     private final HistorialPrecioRepository precios;
     private final MovimientoInventarioRepository movimientos;
@@ -27,7 +29,8 @@ public class PresentacionService {
             PresentacionRepository presentaciones,
             ProductoRepository productos,
             HistorialPrecioRepository precios,
-            MovimientoInventarioRepository movimientos) {
+            MovimientoInventarioRepository movimientos, ControlOperacionService control, ReservaService reservas) {
+        this.control=control; this.reservas=reservas;
 
         this.presentaciones = presentaciones;
         this.productos = productos;
@@ -85,6 +88,7 @@ public class PresentacionService {
 
         validar(request);
 
+        control.bloquear();
         Presentacion presentacion = bloquear(id);
 
         if (presentaciones.existsByCodigoIgnoreCaseAndIdNot(
@@ -152,6 +156,7 @@ public class PresentacionService {
 
     @Transactional
     public void desactivar(Long id) {
+        control.bloquear();
         Presentacion presentacion = bloquear(id);
 
         if (presentacion.getStockReservado() > 0) {
@@ -167,6 +172,7 @@ public class PresentacionService {
             Long id,
             MovimientoInventarioRequest request) {
 
+        control.bloquear();
         Presentacion presentacion = bloquear(id);
 
         if (!presentacion.isActiva()
@@ -216,6 +222,7 @@ public class PresentacionService {
         ));
 
         presentaciones.saveAndFlush(presentacion);
+        reservas.reasignar();
 
         return convertir(presentacion);
     }

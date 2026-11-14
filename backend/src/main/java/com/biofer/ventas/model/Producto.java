@@ -8,7 +8,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "productos")
-public class Producto {
+public class Producto extends RegistroAuditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
